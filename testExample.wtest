@@ -1,9 +1,207 @@
-import example.pepita
+import universidad.*
+import profesionales.*
+import empresa.*
+import solicitantes.*
 
-describe "group of tests for pepita" {
+describe "tests de la etapa 1" {
 
-  test "pepita has initial energy" {
-    assert.equals(100, pepita.energy())
-  }
+    const universidadSanMartin = new Universidad(
+      provincia = "Buenos Aires",
+      honorarioRecomendado = 3500
+    )
+    const universidadRosario = new Universidad(
+      provincia = "Santa Fe",
+      honorarioRecomendado = 2800
+    )
+    const universidadCorrientes = new Universidad(
+      provincia = "Corrientes",
+      honorarioRecomendado = 4200
+    )
+    const universidadHurlingham = new Universidad(
+      provincia = "Buenos Aires",
+      honorarioRecomendado = 8800
+    )
 
+    const juana = new ProfesionalVinculado(
+      universidad = universidadRosario
+    )
+    const melina = new ProfesionalAsociadoDelLitoral(
+      universidad = universidadCorrientes
+    )
+    const rocio = new ProfesionalLibre(
+      universidad = universidadHurlingham,
+      honorarios = 5000,
+      provincias = ["Santa Fe", "Cordoba", "Buenos Aires"]
+    )
+    const luciana = new ProfesionalLibre(
+      universidad = universidadRosario,
+      honorarios = 3200,
+      provincias = ["Santa Fe", "Entre Rios"]
+    )
+
+    const unaEmpresa = new Empresa(
+      honorarioReferencia = 3500
+    )
+
+    method initialize() {
+      unaEmpresa.contratar(juana)
+      unaEmpresa.contratar(melina)
+      unaEmpresa.contratar(rocio)
+      unaEmpresa.contratar(luciana)
+    }
+
+    test "2 profesionales estudiaron en Rosario"{
+      assert.equals(2, unaEmpresa.cantidadQueEstudiaronEn(universidadRosario))
+    }
+    test "1 profesional estudio en hurlingham"{
+      assert.equals(1, unaEmpresa.cantidadQueEstudiaronEn(universidadHurlingham))
+    }
+    test "ningun profesional estudio en san martin"{
+      assert.equals(0, unaEmpresa.cantidadQueEstudiaronEn(universidadSanMartin))
+    }
+    test "rocio es un profesional caro"{
+      assert.equals([rocio], unaEmpresa.profesionalesCaros())
+    }
+    test "las universidades de rosario, corrientes y hurlingham son formadoras"{
+      assert.equals(#{universidadRosario, universidadCorrientes, universidadHurlingham},
+      unaEmpresa.universidadesFormadoras())
+    }
+    test "juana es profesional barata"{
+      assert.equals(juana, unaEmpresa.profesionalMasBarato())
+    }
+    test "la empresa es de gente acotada"{
+      assert.that(unaEmpresa.esDeGenteAcotada())
+    }
+    test "la empresa no es de gente acotada"{
+      luciana.agregarProvincia("Corrientes")
+      luciana.agregarProvincia("Misiones")
+
+      assert.notThat(unaEmpresa.esDeGenteAcotada())
+    }
+
+// TESTS ETAPA 2
+
+    test "persona de santa fe puede ser satisfecha" {
+       const persona = new Persona(provincia = "Santa Fe")
+
+       assert.that(unaEmpresa.puedeSatisfacer(persona))
+    }
+
+    test "persona de misiones no puede ser satisfecha" {
+       const persona = new Persona(provincia = "Misiones")
+
+       assert.notThat(unaEmpresa.puedeSatisfacer(persona))
+    }
+
+    test "institucion que reconoce rosario puede ser satisfecha" {
+       const institucion = new Institucion(universidadesReconocidas = [universidadRosario])
+
+       assert.that(unaEmpresa.puedeSatisfacer(institucion))
+    }
+
+    test "institucion que reconoce san martin no puede ser satisfecha" {
+       const institucion = new Institucion(universidadesReconocidas = [universidadSanMartin])
+
+       assert.notThat(unaEmpresa.puedeSatisfacer(institucion))
+    }
+
+    test "club en cordoba puede ser satisfecho" {
+       const club = new Club(provincias = ["Cordoba"])
+
+       assert.that(unaEmpresa.puedeSatisfacer(club))
+    }
+
+    test "club en misiones no puede ser satisfecho" {
+       const club = new Club(provincias = ["Misiones"] )
+
+       assert.notThat(unaEmpresa.puedeSatisfacer(club))
+    }
+
+// TESTS ETAPA 3
+
+    test "profesional vinculado dona la mitad a la universidad" {
+       juana.cobrar(1000)
+
+       assert.equals(500, universidadRosario.totalDonaciones())
+    }
+
+    test "profesional asociado aporta todo a la asociacion" {
+       melina.cobrar(2000)
+
+       assert.equals(2000, asociacionDelLitoral.totalRecaudado())
+    }
+
+    test "profesional libre guarda todo lo que cobra" {
+       rocio.cobrar(3000)
+
+       assert.equals(3000, rocio.totalRecaudado())
+    }
+
+    test "un profesional libre puede pasar dinero a otro" {
+       rocio.cobrar(10000)
+       luciana.cobrar(12000)
+       luciana.pasarDinero(rocio, 4000)
+
+       assert.equals(14000, rocio.totalRecaudado())
+       assert.equals(8000, luciana.totalRecaudado())
+    }
+
+
+// TESTS ETAPa 4
+
+    test "dar servicio agrega cliente" {
+       const persona = new Persona(provincia = "Santa Fe")
+       unaEmpresa.darServicio(persona)
+
+       assert.that(unaEmpresa.tieneComoCliente(persona))
+    }
+
+    test "cantidad de clientes luego de dar servicios" {
+       const persona1 = new Persona(provincia = "Santa Fe")
+       const persona2 = new Persona(provincia = "Cordoba")
+       unaEmpresa.darServicio(persona1)
+       unaEmpresa.darServicio(persona2)
+
+       assert.equals(2, unaEmpresa.cantidadDeClientes())
+    }
+
+    test "dar servicio hace cobrar a un profesional" {
+       const persona = new Persona(provincia = "Cordoba")
+       unaEmpresa.darServicio(persona)
+
+       assert.that(rocio.totalRecaudado() > 0)
+    }
+
+    test "si no puede atender al solicitante no se agrega como cliente" {
+       const persona = new Persona(provincia = "Misiones")
+       unaEmpresa.darServicio(persona)
+
+       assert.notThat(unaEmpresa.tieneComoCliente(persona))
+    }
+
+// TESTS DESAFIO FINAL
+
+    test "rocio es poco atractiva para la empresa" {
+       const pedro = new ProfesionalLibre(
+          universidad = universidadRosario,
+          honorarios = 2500,
+          provincias = ["Buenos Aires", "Cordoba"]
+       )
+
+       const ana = new ProfesionalLibre(
+          universidad = universidadRosario,
+          honorarios = 2600,
+          provincias = ["Santa Fe"]
+       )
+
+       unaEmpresa.contratar(pedro)
+       unaEmpresa.contratar(ana)
+
+       assert.that(unaEmpresa.esPocoAtractivo(rocio))
+    }
+
+    test "juana no es poco atractiva" {
+       assert.notThat(unaEmpresa.esPocoAtractivo(juana))
+    }
 }
+
